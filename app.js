@@ -1,12 +1,9 @@
-// Define a service port/ip
-const srv_port = process.env.SRV_PORT || "8080";
-const srv_ip = process.env.SRV_IP || "0.0.0.0";
 
+// ------------ external modules -----------------------
 // Require express to make easy
 // routing on server side.
 // Creating express object
 const express = require("express");
-const app = express();
  
 // Require path module
 const path = require('path');
@@ -18,6 +15,13 @@ const pug = require("pug");
 // in a easier way
 const mongoose = require("mongoose");
  
+// ------------ app variables and settings -----------------------
+const app = express();
+
+// Define a service port/ip
+const srv_port = process.env.SRV_PORT || "8080";
+const srv_ip = process.env.SRV_IP || "0.0.0.0";
+
 // Make a static route to use your
 // static files in client side
 app.use('/static', express.static('static'));
@@ -30,49 +34,39 @@ app.use(express.urlencoded());
 app.set('view engine', 'pug');
 app.set('views', path.join(__dirname, 'views'));
  
+// ------------ database setup -----------------------
 // Database Connection
 mongoose.connect(
     "mongodb://localhost:27017/feedback",
     { useUnifiedTopology: true }
 );
  
-// Create schema
-const feedschema = mongoose.Schema({
-    name: String,
-    email: String,
-    feed: String
-});
+// ------------ routing -----------------------
+require('./routes/view.js')(app)
+require('./routes/form.js')(app);
+require('./routes/clean.js')(app);
+
+// catch 404 and forward to error handler
+app.use((req, res, next) => {
+    const err = new Error('Not Found');
+    err.status = 404;
+    next(err);
+}); 
+
+// error handler
+app.use((err, req, res, next) => {
+    // set locals, only providing error in development
+    res.locals.message = err.message;
+    res.locals.error = req.app.get('env') === 'development' ? err : {};
+  
+    // render the error page
+    res.status(err.status || 500);
+    res.render('error');
+  }); 
+
  
-// Making a modal on our already
-// defined schema
-const feedModal = mongoose
-    .model('feeds', feedSchema);
- 
-// Handling get request
-app.get('/', function (req, res) {
-    // Rendering your form
-    res.render('feedback_form');
-});
- 
-// Handling data after submission of form
-app.post("/feedback_form", function (req, res) {
-    const feedData = new feedModal({
-        name: req.body.name,
-        email: req.body.email,
-        feed: req.body.feedback
-    });
-    feedData.save()
-        .then(data => {
-            res.render('feedback_form',
-{ msg: "Your feedback successfully saved." });
-        })
-        .catch(err => {
-            res.render('feedback_form',
-                { msg: "Check Details." });
-        });
-})
- 
-// Server setup
-app.listen(srv_port, srv_ip => {
+// ------------ server activation -----------------------
+
+app.listen(srv_port, srv_ip, () => {
     console.log(`Listening to requests on http://${srv_ip}:${srv_port}`);
 });

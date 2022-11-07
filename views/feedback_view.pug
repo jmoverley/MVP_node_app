@@ -1,0 +1,14 @@
+
+extends layout
+
+block content
+  .results
+    h2 Feedback Results
+    <br>
+        each feedback in feeds
+            ul
+                li= feedback.name
+                li= feedback.feed
+                li= feedback.email 
+        else
+            ul there is no feedback.
